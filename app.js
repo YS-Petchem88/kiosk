@@ -872,6 +872,27 @@ const app = {
         this.speakMessage(menuTitle);
     },
 
+    // 미션에서 옵션 정보 추출 (온도, 사이즈 등)
+    extractMissionOptions(mission, menuName) {
+        const options = {};
+        
+        // 온도 검증
+        if (mission.includes('따뜻한') || mission.includes('뜨거운') || mission.includes('핫')) {
+            if (mission.includes(menuName)) options.temperature = 'HOT';
+        }
+        if (mission.includes('차가운') || mission.includes('시원한') || mission.includes('아이스') || mission.includes('냉')) {
+            if (mission.includes(menuName)) options.temperature = 'ICE';
+        }
+        
+        // 사이즈 검증
+        if (mission.includes('Large')) options.size = 'Large';
+        if (mission.includes('Regular')) options.size = 'Regular';
+        
+        // 좌석 정보는 정확한 좌석 번호가 필요하므로 건너뜀
+        
+        return options;
+    },
+
     // 미션에서 요구한 항목 추출 (메뉴별 개수 포함)
     extractMissionItems() {
         const mission = this.state.currentMission;
@@ -906,17 +927,28 @@ const app = {
 
     // 결제 페이지로
     goToPayment() {
-        // 미션 검증: 미션에 여러 항목이 있으면 모두 담아야 함
+        // 미션 검증: 정확하게 미션의 메뉴와 옵션을 담아야 함
         const missionItemCounts = this.extractMissionItems();
         
         if (Object.keys(missionItemCounts).length > 0) {
             // 장바구니에서 메뉴별 총 개수 계산
             const cartItemCounts = {};
+            const cartDetails = {}; // 메뉴별 옵션 정보 저장
+            
             this.state.cart.forEach(item => {
                 cartItemCounts[item.menu] = (cartItemCounts[item.menu] || 0) + item.quantity;
+                
+                if (!cartDetails[item.menu]) {
+                    cartDetails[item.menu] = {
+                        temperature: item.temperature || '',
+                        size: item.size || '',
+                        seat: item.seat || '',
+                        time: item.time || ''
+                    };
+                }
             });
             
-            // 미션 요구사항과 비교
+            // 1. 미션에 있는 메뉴들이 충분히 담겨있는지 확인
             const missingItems = [];
             Object.entries(missionItemCounts).forEach(([menuName, requiredCount]) => {
                 const cartCount = cartItemCounts[menuName] || 0;
@@ -931,6 +963,39 @@ const app = {
                 this.speakMessage(message);
                 alert(message);
                 return;
+            }
+            
+            // 2. 미션에 없는 메뉴가 담겨있는지 확인 (추가로 주문한 메뉴 체크)
+            const extraItems = [];
+            Object.keys(cartItemCounts).forEach(menuName => {
+                if (!missionItemCounts[menuName]) {
+                    extraItems.push(`${menuName} ${cartItemCounts[menuName]}개`);
+                }
+            });
+            
+            if (extraItems.length > 0) {
+                const message = `미션에 없는 ${extraItems.join(', ')}을(를) 담았습니다. 미션을 다시 확인해주세요.`;
+                this.speakMessage(message);
+                alert(message);
+                return;
+            }
+            
+            // 3. 옵션(온도 등) 검증
+            const mission = this.state.currentMission;
+            for (let [menuName, count] of Object.entries(missionItemCounts)) {
+                const cartDetail = cartDetails[menuName];
+                const missionOptions = this.extractMissionOptions(mission, menuName);
+                
+                // 온도 검증 (카페 메뉴)
+                if (missionOptions.temperature) {
+                    if (cartDetail.temperature !== missionOptions.temperature) {
+                        const tempName = missionOptions.temperature === 'HOT' ? '따뜻한' : '차가운';
+                        const message = `${menuName}은(는) ${tempName} 것으로 주문해야 합니다. 현재는 ${cartDetail.temperature === 'HOT' ? '따뜻한' : '차가운'} 것입니다.`;
+                        this.speakMessage(message);
+                        alert(message);
+                        return;
+                    }
+                }
             }
         }
         
