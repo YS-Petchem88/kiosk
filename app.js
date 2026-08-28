@@ -1212,7 +1212,7 @@ const app = {
         
         warningModal.classList.add('active');
         
-        // "다시 선택하기" 버튼 추가 (확인 버튼 제거)
+        // "다시 선택하기" 버튼 추가
         // 기존 버튼 제거
         const existingBtn = warningModal.querySelector('.warning-modal-retry');
         if (existingBtn) {
