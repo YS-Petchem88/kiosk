@@ -795,14 +795,31 @@ const app = {
             let html = '';
             const cartGrouped = {};
             
-            this.state.cart.forEach(item => {
+            this.state.cart.forEach((item, index) => {
                 const key = `${item.menu}-${item.temperature}-${item.size}-${item.seat}-${item.time}`;
-                cartGrouped[key] = (cartGrouped[key] || 0) + 1;
+                if (!cartGrouped[key]) {
+                    cartGrouped[key] = { item, indices: [], count: 0 };
+                }
+                cartGrouped[key].indices.push(index);
+                cartGrouped[key].count++;
             });
 
-            for (const [key, count] of Object.entries(cartGrouped)) {
+            let groupIndex = 0;
+            for (const [key, data] of Object.entries(cartGrouped)) {
+                const { item, indices, count } = data;
                 const parts = key.split('-').filter(p => p);
-                html += `<div class="order-item">${parts.join(' / ')} x${count}</div>`;
+                const itemKey = `cart-item-${groupIndex}`;
+                
+                html += `<div class="order-item" id="${itemKey}" data-group-index="${groupIndex}">
+                    <div class="order-item-content">${parts.join(' / ')}</div>
+                    <div class="order-item-controls">
+                        <button class="order-item-btn decrease-btn" onclick="app.decreaseCartItemQuantity(${groupIndex})" title="수량 감소">−</button>
+                        <span class="order-item-quantity">${count}</span>
+                        <button class="order-item-btn increase-btn" onclick="app.increaseCartItemQuantity(${groupIndex})" title="수량 증가">+</button>
+                        <button class="order-item-btn delete-btn" onclick="app.removeFromCart(${groupIndex})" title="메뉴 삭제">✕</button>
+                    </div>
+                </div>`;
+                groupIndex++;
             }
 
             this.state.totalPrice = this.state.cart.reduce((sum, item) => {
@@ -812,6 +829,70 @@ const app = {
             }, 0);
 
             orderList.innerHTML = html;
+        }
+    },
+
+    // 장바구니 아이템 수량 감소
+    decreaseCartItemQuantity(groupIndex) {
+        const cartGrouped = {};
+        this.state.cart.forEach((item, index) => {
+            const key = `${item.menu}-${item.temperature}-${item.size}-${item.seat}-${item.time}`;
+            if (!cartGrouped[key]) {
+                cartGrouped[key] = [];
+            }
+            cartGrouped[key].push(index);
+        });
+
+        const keys = Object.keys(cartGrouped);
+        const indices = cartGrouped[keys[groupIndex]];
+        
+        if (indices && indices.length > 0) {
+            this.state.cart.splice(indices[indices.length - 1], 1);
+            this.updateOrderSummary();
+            this.updateOrderConfirm();
+        }
+    },
+
+    // 장바구니 아이템 수량 증가
+    increaseCartItemQuantity(groupIndex) {
+        const cartGrouped = {};
+        this.state.cart.forEach((item, index) => {
+            const key = `${item.menu}-${item.temperature}-${item.size}-${item.seat}-${item.time}`;
+            if (!cartGrouped[key]) {
+                cartGrouped[key] = { item, indices: [] };
+            }
+            cartGrouped[key].indices.push(index);
+        });
+
+        const keys = Object.keys(cartGrouped);
+        const { item } = cartGrouped[keys[groupIndex]];
+        
+        this.state.cart.push(JSON.parse(JSON.stringify(item)));
+        this.updateOrderSummary();
+        this.updateOrderConfirm();
+    },
+
+    // 장바구니에서 메뉴 삭제
+    removeFromCart(groupIndex) {
+        const cartGrouped = {};
+        this.state.cart.forEach((item, index) => {
+            const key = `${item.menu}-${item.temperature}-${item.size}-${item.seat}-${item.time}`;
+            if (!cartGrouped[key]) {
+                cartGrouped[key] = [];
+            }
+            cartGrouped[key].push(index);
+        });
+
+        const keys = Object.keys(cartGrouped);
+        const indices = cartGrouped[keys[groupIndex]];
+        
+        if (indices) {
+            // 인덱스가 큰 순서대로 삭제 (인덱스 변경 방지)
+            indices.sort((a, b) => b - a).forEach(index => {
+                this.state.cart.splice(index, 1);
+            });
+            this.updateOrderSummary();
+            this.updateOrderConfirm();
         }
     },
 
@@ -961,7 +1042,7 @@ const app = {
             if (missingItems.length > 0) {
                 const message = `아직 ${missingItems.join(', ')}을(를) 담지 않았습니다.`;
                 this.speakMessage(message);
-                alert(message);
+                this.showWarningModal('❌ 메뉴 부족', message, this.state.currentMission, missingItems);
                 return;
             }
             
@@ -974,9 +1055,9 @@ const app = {
             });
             
             if (extraItems.length > 0) {
-                const message = `❌ 미션과 일치하지 않은 메뉴가 담겨있습니다: ${extraItems.join(', ')}\n\n📋 미션: ${this.state.currentMission}\n\n미션을 다시 확인하고 올바른 메뉴만 주문해주세요.`;
+                const message = `미션과 일치하지 않은 메뉴가 담겨있습니다.`;
                 this.speakMessage(`미션과 일치하지 않은 ${extraItems.join(', ')}이(가) 담겨있습니다. 미션을 다시 확인해주세요.`);
-                alert(message);
+                this.showWarningModal('❌ 미션 불일치', message, this.state.currentMission, extraItems);
                 return;
             }
             
@@ -990,9 +1071,10 @@ const app = {
                 if (missionOptions.temperature) {
                     if (cartDetail.temperature !== missionOptions.temperature) {
                         const tempName = missionOptions.temperature === 'HOT' ? '따뜻한' : '차가운';
-                        const message = `${menuName}은(는) ${tempName} 것으로 주문해야 합니다. 현재는 ${cartDetail.temperature === 'HOT' ? '따뜻한' : '차가운'} 것입니다.`;
+                        const currentTemp = cartDetail.temperature === 'HOT' ? '따뜨한' : '차가운';
+                        const message = `${menuName}의 온도가 미션과 맞지 않습니다.`;
                         this.speakMessage(message);
-                        alert(message);
+                        this.showWarningModal('🌡️ 온도 불일치', message, this.state.currentMission, [`${menuName}: ${tempName} 필요 (현재: ${currentTemp})`]);
                         return;
                     }
                 }
@@ -1109,6 +1191,38 @@ const app = {
 
         this.speakMessage(hint);
         this.state.hintLevel++;
+    },
+
+    // 경고 모달 표시
+    showWarningModal(title, message, mission, items) {
+        const warningModal = document.getElementById('warningModal');
+        document.getElementById('warningTitle').textContent = title;
+        document.getElementById('warningMessage').textContent = message;
+        document.getElementById('warningMissionText').textContent = mission;
+        
+        const missingMenusDisplay = document.getElementById('missingMenusDisplay');
+        const missingMenusText = document.getElementById('missingMenusText');
+        
+        if (items && items.length > 0) {
+            missingMenusDisplay.style.display = 'block';
+            missingMenusText.textContent = items.join(', ');
+        } else {
+            missingMenusDisplay.style.display = 'none';
+        }
+        
+        warningModal.classList.add('active');
+        
+        // 모달 닫기 버튼 자동 추가
+        if (!document.querySelector('.warning-modal-close')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'btn btn-primary warning-modal-close';
+            closeBtn.textContent = '확인';
+            closeBtn.style.marginTop = '20px';
+            closeBtn.onclick = () => {
+                warningModal.classList.remove('active');
+            };
+            warningModal.querySelector('.warning-modal-content').appendChild(closeBtn);
+        }
     },
 
     // 힌트 닫기
