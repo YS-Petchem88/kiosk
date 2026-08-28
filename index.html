@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>키오스크 연습 앱</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 홈 화면 -->
+        <div id="homeScreen" class="screen active">
+            <div class="screen-content">
+                <h1 class="title">🎯 키오스크 연습</h1>
+                <p class="subtitle">키오스크 사용이 처음이라도 괜찮습니다.<br>천천히 배워보세요.</p>
+                <button class="btn btn-primary btn-large" onclick="app.goToStoreSelection()">
+                    연습 시작
+                </button>
+                <button class="btn btn-secondary" onclick="app.showGuide()">
+                    📖 배워보기
+                </button>
+                <button class="btn btn-secondary" onclick="app.showHistory()">
+                    📊 나의 기록
+                </button>
+            </div>
+        </div>
+
+        <!-- 가게 선택 화면 -->
+        <div id="storeSelectionScreen" class="screen">
+            <div class="screen-content">
+                <h2 class="title">어떤 가게를 연습할까요?</h2>
+                <p class="subtitle">원하는 키오스크를 선택하세요.</p>
+                <div class="store-grid">
+                    <button class="store-btn" onclick="app.selectStore('cafe')">
+                        ☕ 카페
+                    </button>
+                    <button class="store-btn" onclick="app.selectStore('hamburger')">
+                        🍔 햄버거 가게
+                    </button>
+                    <button class="store-btn" onclick="app.selectStore('korean')">
+                        🍜 한식 가게
+                    </button>
+                    <button class="store-btn" onclick="app.selectStore('pizza')">
+                        🍕 피자 가게
+                    </button>
+                    <button class="store-btn" onclick="app.selectStore('movie')">
+                        🎬 영화관
+                    </button>
+                    <button class="store-btn" onclick="app.selectStore('train')">
+                        🚆 기차역
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="app.goToHome()">
+                    ◀ 뒤로가기
+                </button>
+            </div>
+        </div>
+
+        <!-- 난이도 선택 화면 -->
+        <div id="difficultySelectionScreen" class="screen">
+            <div class="screen-content">
+                <h2 class="title">어느 단계로 연습하시겠어요?</h2>
+                <div class="difficulty-container">
+                    <button class="difficulty-btn" onclick="app.selectDifficulty('practice')">
+                        <div class="difficulty-emoji">🌱</div>
+                        <div class="difficulty-name">연습</div>
+                        <div class="difficulty-desc">음성 안내를 받으며<br>천천히 배워요</div>
+                        <div class="difficulty-level">⭐</div>
+                    </button>
+                    <button class="difficulty-btn" onclick="app.selectDifficulty('challenge')">
+                        <div class="difficulty-emoji">🚀</div>
+                        <div class="difficulty-name">도전</div>
+                        <div class="difficulty-desc">혼자서 해보고<br>필요할 때 도움받아요</div>
+                        <div class="difficulty-level">⭐⭐</div>
+                    </button>
+                    <button class="difficulty-btn" onclick="app.selectDifficulty('real')">
+                        <div class="difficulty-emoji">🎯</div>
+                        <div class="difficulty-name">실전</div>
+                        <div class="difficulty-desc">실제처럼<br>혼자서 주문해요</div>
+                        <div class="difficulty-level">⭐⭐⭐</div>
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="app.goToStoreSelection()">
+                    ◀ 뒤로가기
+                </button>
+            </div>
+        </div>
+
+        <!-- 미션 안내 화면 -->
+        <div id="missionScreen" class="screen">
+            <div class="screen-content">
+                <h2 class="title">오늘의 미션</h2>
+                <div class="mission-card">
+                    <p id="missionStore" class="mission-text"><strong>카페</strong>에서</p>
+                    <p id="missionContent" class="mission-highlight"></p>
+                    <p class="mission-text">을(를) 주문하세요.</p>
+                </div>
+                <button class="btn btn-primary btn-large" onclick="app.startKiosk()">
+                    시작하기
+                </button>
+                <button class="btn btn-secondary" onclick="app.goToDifficultySelection()">
+                    ◀ 뒤로가기
+                </button>
+            </div>
+        </div>
+
+        <!-- 키오스크 메인 화면 -->
+        <div id="kioskScreen" class="screen">
+            <div class="kiosk-container">
+                <!-- 현재 미션 표시 -->
+                <div class="mission-banner">
+                    <div class="mission-title">📋 미션</div>
+                    <div id="currentMission" class="mission-text">로딩 중...</div>
+                    <div id="timerContainer" class="timer-container" style="display: none;">
+                        <div class="timer-label">⏱️ 제한시간</div>
+                        <div id="timerDisplay" class="timer-display">02:00</div>
+                    </div>
+                </div>
+
+                <!-- 주문 요약과 메인 영역 -->
+                <div class="kiosk-inner-container">
+                    <!-- 주문 요약 -->
+                    <div class="order-summary">
+                        <div class="order-summary-header">📋 주문 현황</div>
+                        <div id="orderList" class="order-list">
+                            <p class="empty-order">메뉴를<br>선택하세요</p>
+                        </div>
+                        <div class="order-summary-footer">
+                            <div class="summary-total">
+                                <span>합계</span>
+                                <span id="summaryTotalPrice">0원</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 메인 영역 -->
+                    <div class="kiosk-main">
+                    <!-- 메뉴 선택 단계 -->
+                    <div id="menuSelectionStep" class="kiosk-step active">
+                        <!-- 상단 헤더 -->
+                        <div class="kiosk-header">
+                            <div class="header-title">
+                                <span id="headerStoreName">☕ 카페</span>
+                            </div>
+                            <div id="categoryTabs" class="category-tabs"></div>
+                        </div>
+                        <h3 id="menuStepTitle">☕ 음료를 선택해주세요.</h3>
+                        <div id="menuGrid" class="menu-grid">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+
+                    <!-- 옵션 선택 단계 -->
+                    <div id="optionSelectionStep" class="kiosk-step">
+                        <h3 id="optionTitle">온도를 선택해주세요.</h3>
+                        <div class="option-group">
+                            <button class="option-btn" onclick="app.selectOption('temperature', 'HOT')">
+                                🔥 HOT
+                            </button>
+                            <button class="option-btn" onclick="app.selectOption('temperature', 'ICE')">
+                                ❄️ ICE
+                            </button>
+                        </div>
+                        <div id="sizeOptionGroup" class="option-group" style="display: none;">
+                            <p class="option-subtitle">사이즈를 선택해주세요.</p>
+                            <button class="option-btn" onclick="app.selectOption('size', 'Regular')">
+                                🥤 Regular (기본)
+                            </button>
+                            <button class="option-btn" onclick="app.selectOption('size', 'Large')">
+                                🥛 Large (+1,000원)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 영화관 좌석 배치도 -->
+                    <div id="theaterSeatingStep" class="kiosk-step" style="display: none;">
+                        <h3>좌석을 선택해주세요.</h3>
+                        <div class="theater-screen">🎬 SCREEN</div>
+                        <div id="theaterSeating" class="theater-seating"></div>
+                    </div>
+
+                    <!-- 수량 선택 단계 -->
+                    <div id="quantitySelectionStep" class="kiosk-step">
+                        <h3>수량을 선택해주세요.</h3>
+                        <div class="quantity-container">
+                            <button class="btn-quantity" onclick="app.decreaseQuantity()">−</button>
+                            <span id="quantityDisplay" class="quantity-display">1</span>
+                            <button class="btn-quantity" onclick="app.increaseQuantity()">+</button>
+                        </div>
+                        <button class="btn btn-primary btn-large" onclick="app.addToCart()">
+                            장바구니에 담기
+                        </button>
+                    </div>
+
+                    <!-- 주문 확인 단계 -->
+                    <div id="orderConfirmStep" class="kiosk-step">
+                        <h3>주문을 확인해주세요.</h3>
+                        <div id="orderConfirmList" class="order-confirm-list"></div>
+                        <div class="total-price">
+                            <span>총액</span>
+                            <span id="totalPrice">0원</span>
+                        </div>
+                        <button class="btn btn-primary btn-large" onclick="app.goToPayment()">
+                            결제하기
+                        </button>
+                        <button class="btn btn-secondary btn-large" onclick="app.addMoreMenu()">
+                            + 메뉴 추가
+                        </button>
+                    </div>
+
+                    <!-- 결제 단계 -->
+                    <div id="paymentStep" class="kiosk-step">
+                        <h3>결제 방법을 선택해주세요.</h3>
+                        <div class="payment-grid">
+                            <button class="payment-btn" onclick="app.selectPayment('card')">
+                                💳 카드
+                            </button>
+                            <button class="payment-btn" onclick="app.selectPayment('cash')">
+                                💵 현금
+                            </button>
+                            <button class="payment-btn" onclick="app.selectPayment('mobile')">
+                                📱 모바일 결제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- 힌트/도움 버튼 -->
+                <div class="kiosk-footer" id="kioskFooter">
+                    <button class="btn btn-secondary" onclick="app.goToDifficultySelection()">
+                        ◀ 뒤로가기
+                    </button>
+                    <button class="btn btn-hint" onclick="app.showHint()">
+                        💡 힌트 보기
+                    </button>
+                    <button class="btn btn-help" onclick="app.showHelp()">
+                        ❓ 도움말
+                    </button>
+                    <button class="btn btn-voice" onclick="app.toggleVoice()">
+                        🔊 음성 안내
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div id="resultScreen" class="screen">
+            <div class="screen-content">
+                <h1 class="title">🎉 주문 성공!</h1>
+                <div class="result-card">
+                    <p class="result-message">주문이 완료되었습니다.</p>
+                    <div id="resultItems" class="result-items"></div>
+                    <div class="result-total">
+                        <span>총액</span>
+                        <span id="resultTotalPrice">0원</span>
+                    </div>
+                    <div id="elapsedTime" class="elapsed-time" style="display: none;"></div>
+                </div>
+                <p class="result-tip">대기번호를 확인해주세요.</p>
+                <div class="waiting-number">
+                    <span id="waitingNumber">10</span>
+                </div>
+                <button class="btn btn-primary btn-large" onclick="app.restartPractice()">
+                    다시 연습하기
+                </button>
+                <button class="btn btn-secondary" onclick="app.goToHome()">
+                    홈으로 돌아가기
+                </button>
+            </div>
+        </div>
+
+        <!-- 학습 기록 화면 -->
+        <div id="historyScreen" class="screen">
+            <div class="screen-content">
+                <h1 class="title">📊 나의 학습 기록</h1>
+                <div id="historyList" class="history-list"></div>
+                <div class="history-buttons">
+                    <button class="btn btn-secondary" onclick="app.goToHome()">
+                        홈으로 돌아가기
+                    </button>
+                    <button class="btn btn-danger" onclick="app.clearRecords()" style="margin-left: 10px;">
+                        🗑️ 기록 삭제
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 힌트 모달 -->
+        <div id="hintModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="app.closeHint()">&times;</span>
+                <h3>💡 힌트</h3>
+                <div id="hintContent" class="hint-content"></div>
+                <button class="btn btn-primary" onclick="app.closeHint()">확인</button>
+            </div>
+        </div>
+
+        <!-- 가이드 모달 -->
+        <div id="guideModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="app.closeGuide()">&times;</span>
+                <h3>📖 키오스크 사용법</h3>
+                <div class="guide-content">
+                    <div class="guide-step">
+                        <h4>1단계: 가게 선택</h4>
+                        <p>연습할 가게를 선택합니다.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4>2단계: 난이도 선택</h4>
+                        <p>🌱 연습: 음성 안내를 받으며 배워요<br>
+                           🚀 도전: 혼자서 해보고 필요할 때 도움을 받아요<br>
+                           🎯 실전: 실제처럼 혼자 주문해요</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4>3단계: 메뉴 선택</h4>
+                        <p>원하는 음료를 선택합니다.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4>4단계: 옵션 선택</h4>
+                        <p>온도, 사이즈 등의 옵션을 선택합니다.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4>5단계: 주문 확인 및 결제</h4>
+                        <p>선택한 메뉴를 확인한 후 결제 방법을 선택합니다.</p>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="app.closeGuide()">확인</button>
+            </div>
+        </div>
+
+        <!-- 경고 모달 -->
+        <div id="warningModal" class="modal">
+            <div class="modal-content warning-modal-content">
+                <div class="warning-icon" id="warningIcon">⚠️</div>
+                <h3 id="warningTitle">메뉴 선택 오류</h3>
+                <p class="warning-message" id="warningMessage">다른 메뉴를 선택하셨어요.</p>
+                <div class="mission-display">
+                    <p class="mission-label">🎯 미션:</p>
+                    <p id="warningMissionText" class="mission-text"></p>
+                </div>
+                <div id="missingMenusDisplay" style="display: none;">
+                    <p class="missing-label">📌 추가해야 할 메뉴:</p>
+                    <p id="missingMenusText" class="missing-menus"></p>
+                </div>
+                <div id="timeoutPriceDisplay" class="timeout-price-display" style="display: none;">
+                    <p class="timeout-price-label">� 주문 항목:</p>
+                    <div id="timeoutCartDisplay" class="timeout-cart-display"></div>
+                    <p class="timeout-price-label">�💰 주문 합계:</p>
+                    <p id="timeoutTotalPrice" class="timeout-total-price">0원</p>
+                </div>
+                <button class="btn btn-primary btn-large" onclick="app.closeWarning()">다시 선택하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
