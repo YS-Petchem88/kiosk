@@ -1212,17 +1212,23 @@ const app = {
         
         warningModal.classList.add('active');
         
-        // 모달 닫기 버튼 자동 추가
-        if (!document.querySelector('.warning-modal-close')) {
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'btn btn-primary warning-modal-close';
-            closeBtn.textContent = '확인';
-            closeBtn.style.marginTop = '20px';
-            closeBtn.onclick = () => {
-                warningModal.classList.remove('active');
-            };
-            warningModal.querySelector('.warning-modal-content').appendChild(closeBtn);
+        // "다시 선택하기" 버튼 추가 (확인 버튼 제거)
+        // 기존 버튼 제거
+        const existingBtn = warningModal.querySelector('.warning-modal-retry');
+        if (existingBtn) {
+            existingBtn.remove();
         }
+        
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn btn-primary warning-modal-retry';
+        retryBtn.textContent = '다시 선택하기';
+        retryBtn.style.marginTop = '20px';
+        retryBtn.onclick = () => {
+            warningModal.classList.remove('active');
+            app.state.currentStep = 'orderConfirm';
+            app.updateKioskStep();
+        };
+        warningModal.querySelector('.warning-modal-content').appendChild(retryBtn);
     },
 
     // 힌트 닫기
