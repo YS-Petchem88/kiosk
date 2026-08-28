@@ -1,4 +1,51 @@
-﻿// 키오스크 앱 로직
+﻿// 기기 고유 ID 생성 함수
+function generateDeviceId() {
+    const userAgent = navigator.userAgent;
+    const screenInfo = `${window.screen.width}x${window.screen.height}`;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const language = navigator.language;
+    
+    const deviceFingerprint = `${userAgent}-${screenInfo}-${timezone}-${language}`;
+    
+    // 간단한 해시 함수
+    let hash = 0;
+    for (let i = 0; i < deviceFingerprint.length; i++) {
+        const char = deviceFingerprint.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+}
+
+// 현재 기기 ID 저장 및 확인
+function getOrCreateDeviceId() {
+    let storedId = localStorage.getItem('kioskDeviceId');
+    const currentId = generateDeviceId();
+    
+    if (!storedId) {
+        // 처음 접속 - 기기 ID 저장
+        localStorage.setItem('kioskDeviceId', currentId);
+        localStorage.setItem('kioskDeviceIdTime', new Date().toISOString());
+        return currentId;
+    }
+    
+    if (storedId !== currentId) {
+        // 다른 기기에서 접속 - 새로운 기기로 인식
+        console.log('다른 기기에서 접속했습니다. 새로운 기록을 시작합니다.');
+        localStorage.setItem('kioskDeviceId', currentId);
+        localStorage.setItem('kioskDeviceIdTime', new Date().toISOString());
+        // 기존 기록 초기화
+        localStorage.removeItem('practiceHistory');
+        return currentId;
+    }
+    
+    return currentId;
+}
+
+// 기기 ID 확인 후 초기화
+getOrCreateDeviceId();
+
+// 키오스크 앱 로직
 const app = {
     // 상태
     state: {
