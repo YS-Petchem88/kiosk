@@ -1270,6 +1270,15 @@ const app = {
         historyList.innerHTML = html;
     },
 
+    // 기록 삭제
+    clearRecords() {
+        if (confirm('정말 모든 기록을 삭제하시겠어요?\n삭제된 기록은 복구할 수 없습니다.')) {
+            this.state.practiceHistory = [];
+            localStorage.removeItem('practiceHistory');
+            this.showHistory();
+        }
+    },
+
     // 음성 안내 토글
     toggleVoice() {
         this.state.voiceEnabled = !this.state.voiceEnabled;
