@@ -969,13 +969,13 @@ const app = {
             const extraItems = [];
             Object.keys(cartItemCounts).forEach(menuName => {
                 if (!missionItemCounts[menuName]) {
-                    extraItems.push(`${menuName} ${cartItemCounts[menuName]}개`);
+                    extraItems.push(`${menuName}`);
                 }
             });
             
             if (extraItems.length > 0) {
-                const message = `미션에 없는 ${extraItems.join(', ')}을(를) 담았습니다. 미션을 다시 확인해주세요.`;
-                this.speakMessage(message);
+                const message = `❌ 미션과 일치하지 않은 메뉴가 담겨있습니다: ${extraItems.join(', ')}\n\n📋 미션: ${this.state.currentMission}\n\n미션을 다시 확인하고 올바른 메뉴만 주문해주세요.`;
+                this.speakMessage(`미션과 일치하지 않은 ${extraItems.join(', ')}이(가) 담겨있습니다. 미션을 다시 확인해주세요.`);
                 alert(message);
                 return;
             }
